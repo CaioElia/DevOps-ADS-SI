@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Bird Melhorado</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #87CEEB;
+            font-family: Arial, sans-serif;
+        }
+        #gameCanvas {
+            border: 2px solid #000;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        #startScreen, #gameOverScreen {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
+    <div id="startScreen">
+        <h1>Flappy Bird</h1>
+        <p>Clique para fazer o pássaro voar</p>
+        <button id="startButton">Iniciar Jogo</button>
+    </div>
+    <div id="gameOverScreen" style="display: none;">
+        <h1>Game Over</h1>
+        <p>Sua pontuação: <span id="finalScore"></span></p>
+        <button id="restartButton">Jogar Novamente</button>
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const startScreen = document.getElementById('startScreen');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const startButton = document.getElementById('startButton');
+        const restartButton = document.getElementById('restartButton');
+        const finalScoreSpan = document.getElementById('finalScore');
+
+        // Game variables
+        let bird, pipes, score, animationId;
+        const gravity = 0.5;
+        const jumpStrength = -10;
+        const pipeWidth = 80;
+        const pipeGap = 150;
+        const pipeInterval = 1500;
+
+        // Load images
+        const birdImg = new Image();
+        birdImg.src = 'https://i.imgur.com/iQmL3Y4.png';
+        const pipeImg = new Image();
+        pipeImg.src = 'https://i.imgur.com/RflNpDr.png';
+        const bgImg = new Image();
+        bgImg.src = 'https://i.imgur.com/JfgQBiH.png';
+
+        function initGame() {
+            bird = {
+                x: 50,
+                y: canvas.height / 2,
+                width: 40,
+                height: 30,
+                velocity: 0
+            };
+            pipes = [];
+            score = 0;
+        }
+
+        function createPipe() {
+            const pipeY = Math.random() * (canvas.height - pipeGap - 100) + 50;
+            pipes.push({
+                x: canvas.width,
+                y: pipeY,
+                passed: false
+            });
+        }
+
+        function drawBird() {
+            ctx.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
+        }
+
+        function drawPipes() {
+            pipes.forEach(pipe => {
+                ctx.drawImage(pipeImg, pipe.x, 0, pipeWidth, pipe.y);
+                ctx.drawImage(pipeImg, pipe.x, pipe.y + pipeGap, pipeWidth, canvas.height - pipe.y - pipeGap);
+            });
+        }
+
+        function drawScore() {
+            ctx.font = '30px Arial';
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 2;
+            ctx.fillText(`Score: ${score}`, 10, 40);
+            ctx.strokeText(`Score: ${score}`, 10, 40);
+        }
+
+        function updateGame() {
+            // Update bird
+            bird.velocity += gravity;
+            bird.y += bird.velocity;
+
+            // Check collisions
+            if (bird.y + bird.height > canvas.height || bird.y < 0) {
+                gameOver();
+            }
+
+            pipes.forEach(pipe => {
+                if (bird.x + bird.width > pipe.x && bird.x < pipe.x + pipeWidth &&
+                    (bird.y < pipe.y || bird.y + bird.height > pipe.y + pipeGap)) {
+                    gameOver();
+                }
+
+                if (pipe.x + pipeWidth < bird.x && !pipe.passed) {
+                    score++;
+                    pipe.passed = true;
+                }
+            });
+
+            // Move and remove pipes
+            pipes = pipes.filter(pipe => {
+                pipe.x -= 2;
+                return pipe.x + pipeWidth > 0;
+            });
+        }
+
+        function drawGame() {
+            ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+            drawPipes();
+            drawBird();
+            drawScore();
+        }
+
+        function gameLoop() {
+            updateGame();
+            drawGame();
+            animationId = requestAnimationFrame(gameLoop);
+        }
+
+        function startGame() {
+            startScreen.style.display = 'none';
+            initGame();
+            gameLoop();
+            setInterval(createPipe, pipeInterval);
+        }
+
+        function gameOver() {
+            cancelAnimationFrame(animationId);
+            finalScoreSpan.textContent = score;
+            gameOverScreen.style.display = 'block';
+        }
+
+        function restartGame() {
+            gameOverScreen.style.display = 'none';
+            startGame();
+        }
+
+        canvas.addEventListener('click', () => {
+            bird.velocity = jumpStrength;
+        });
+
+        startButton.addEventListener('click', startGame);
+        restartButton.addEventListener('click', restartGame);
+
+        // Preload images
+        [birdImg, pipeImg, bgImg].forEach(img => {
+            img.onload = () => {
+                if ([birdImg, pipeImg, bgImg].every(img => img.complete)) {
+                    startScreen.style.display = 'block';
+                }
+            };
+        });
+    </script>
+</body>
+</html>
